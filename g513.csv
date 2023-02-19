@@ -11,7 +11,7 @@
 11,0
 12,minus
 13,equal
-14,delete
+14,backspace
 15,tab
 16,q
 17,w
@@ -25,7 +25,7 @@
 25,p
 26,open_bracket
 27,close_bracket
-28,return
+28,enter
 29,ctrlleft
 30,a
 31,s
@@ -53,7 +53,7 @@
 53,slash
 54,shiftright
 55,num_asterisk
-56,alt
+56,alt_left
 57,space
 58,ctrll_lock
 59,f1
@@ -66,7 +66,7 @@
 66,f8
 67,f9
 68,f10
-69,num_lock
+69,numlock
 70,scroll_lock
 71,num7
 72,num8
@@ -86,10 +86,10 @@
 87,f11
 88,f12
 96,numenter
-97,control
+97,ctrlright
 98,numdivide
 99,spare
-100,alt
+100,alt_right
 101,break
 102,find
 103,up
@@ -110,5 +110,6 @@
 118,numminplus
 119,pause
 121,num.
-125,alt
+125,winleft
 126,alt
+127,menu

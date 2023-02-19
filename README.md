@@ -10,3 +10,7 @@ note: will be redone in C++ soon for efficiency
 
 - python3
 - g810-led
+
+## Usage
+
+- Available colors are [here](https://www.webucator.com/article/python-color-constants-module/)
