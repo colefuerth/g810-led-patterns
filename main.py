@@ -1,11 +1,9 @@
+#!/usr/bin/python3
 """
 "Echo" pattern for G810 keyboard
 requires keyboard module, which needs root access to hook into the keyboard
 """
 
-# DISCLAIMER: I could not get the on_release event to work, so I had to use a loop to wait for the key to be released. this is NOT efficient, since when a key is held it basically spawns a bunch of threads that do nothing. I'm not sure how to fix this, but I'm sure there's a way.
-
-# from pynput import keyboard
 import keyboard
 from time import sleep
 from color_codes import colors, RGB
@@ -15,8 +13,8 @@ import threading
 
 color1 = colors['blueviolet']
 color2 = colors['darkorange']
-fade = 5        # fade time in seconds
-freq = 5        # animation frequency in Hz
+fade = 6         # fade time in seconds
+freq = 10        # animation frequency in Hz
 g810_path = '/usr/bin/g810-led'
 
 
@@ -43,32 +41,33 @@ def update_key(key: int, color: str):
 subprocess.call([g810_path, '-a', color1.hex_format()])
 
 # threaded function for animating active keys
-def animate(key: int, event: threading.Event):
-    def gradient(color1, color2, steps):
-        r1, g1, b1 = color1
-        r2, g2, b2 = color2
-        for i in range(steps):
-            yield RGB(
-                int(r1 + (r2 - r1) * i / steps),
-                int(g1 + (g2 - g1) * i / steps),
-                int(b1 + (b2 - b1) * i / steps)).hex_format()
-    for grad in gradient(color2, color1, freq * fade):
-        # if event is set, then the key has been pressed again, so stop animating
-        if event.is_set():
-            return
-        update_key(key, grad)
-        sleep(1/freq)
+
+
+def animate(key: int, event: threading.Event, effect='gradient'):
+    if effect == 'gradient':
+        def gradient(color1, color2, steps):
+            r1, g1, b1 = color1
+            r2, g2, b2 = color2
+            for i in range(steps):
+                yield RGB(
+                    int(r1 + (r2 - r1) * i / steps),
+                    int(g1 + (g2 - g1) * i / steps),
+                    int(b1 + (b2 - b1) * i / steps)).hex_format()
+        for grad in gradient(color2, color1, freq * fade):
+            # if event is set, then the key has been pressed again, so stop animating
+            if event.is_set():
+                return
+            update_key(key, grad)
+            sleep(1/freq)
+    else:
+        raise ValueError('Unknown effect: ' + effect)
     # if the key is still active when the animation is done, remove it
-    active.pop(key)
+    if key in active:
+        active.pop(key)
 
 
-# yes there are hooks
-# but there's a bug where you cant actually hook both presses and releases
-# so this is the next best thing, sorry ryan this probably hurts to read
-while True:
-    event = keyboard.read_event()
+def on_event(event):
     key = event.scan_code
-    print(f"{key} {event.event_type} {event.name}")
     if key in keymap:
         # animate on release
         if event.event_type == 'up':
@@ -85,3 +84,11 @@ while True:
         pass
     else:
         print('Unknown key code: ' + str(key), file=stderr)
+
+
+# yes there are hooks
+# but there's a bug where you cant actually hook both presses and releases
+# also I threaded it because sometimes I would type faster than catching events and it would get stuck
+while True:
+    event = keyboard.read_event()
+    threading.Thread(target=on_event, args=(event,)).start()

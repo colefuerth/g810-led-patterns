@@ -2,15 +2,19 @@
 
 Uses python and g810-led to do dynamic patterns on Logitech keyboards
 
-note: will be redone in C++ soon for efficiency
+**Currently only supports the 'echo' effect**
 
 ## Requirements
 
-(on path)
+On Ubuntu:
 
-- python3
-- g810-led
+```bash
+sudo apt update
+sudo apt install g810-led python3 python3-pip
+sudo python3 -m pip install -r requirements.txt
+```
 
 ## Usage
 
 - Available colors are [here](https://www.webucator.com/article/python-color-constants-module/)
+- run as root, ensure g810-led is installed

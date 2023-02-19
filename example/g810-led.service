@@ -1,0 +1,10 @@
+# systemd script for the service
+[Unit]
+Description=g810-led animation using python
+
+[Service]
+WorkingDirectory=/home/$USER/g810-led-patterns
+ExecStart=/usr/bin/python3 ./main.py
+
+[Install]
+WantedBy=multi-user.target
