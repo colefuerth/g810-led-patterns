@@ -37,10 +37,10 @@ def update_key(key: int, color: str, keycache={k: color1.hex_format() for k in k
 subprocess.call([g810_path, '-a', color1.hex_format()])
 
 
-def animate(key: int, event: threading.Event, effect='gradient'):
+def animate(key: int, event: threading.Event, effect='echo'):
     # threaded function for animating active keys
     # event is used to stop animations in progress if the key is pressed again
-    if effect == 'gradient':
+    if effect == 'echo':
         def gradient(color1, color2, steps):
             r1, g1, b1 = color1
             r2, g2, b2 = color2
@@ -51,11 +51,14 @@ def animate(key: int, event: threading.Event, effect='gradient'):
                     int(b1 + (b2 - b1) * i / steps)).hex_format()
         for grad in gradient(color2, color1, freq * fade):
             if event.is_set():
-                return
+                break
             update_key(key, grad)
             sleep(1/freq)
+        update_key(key, color1.hex_format())
     else:
         raise ValueError('Unknown effect: ' + effect)
+    if key in active and active[key] == event:
+        active.pop(key)
 
 
 def on_event(event):
@@ -63,16 +66,12 @@ def on_event(event):
     if key in keymap:
         # animate on release
         if event.event_type == 'up':
-            e = threading.Event()
-            threading.Thread(target=animate, args=(key, e)).start()
-            if key in active:
-                active[key].set()
-            active[key] = e
+            active[key] = threading.Event()
+            threading.Thread(target=animate, args=(key, active[key])).start()
         # set color on press, kill any active animations for this key
         elif event.event_type == 'down':
             if key in active:
                 active[key].set()
-                active.pop(key)
             update_key(key, color2.hex_format())
         else:
             print('Unknown event type: ' + str(event.event_type), file=stderr)
