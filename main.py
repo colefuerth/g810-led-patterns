@@ -27,6 +27,8 @@ keymap = {
     int(k): v for k, v in (line.strip().split(',')
                            for line in open('g513.csv')
                            if line.strip() != '')}
+
+
 # buffer of current key colors, to prevent unnecessary calls to g810-led
 keycache = {k: color1.hex_format() for k in keymap}
 
@@ -40,12 +42,8 @@ def update_key(key: int, color: str):
 # set all keys to color1
 subprocess.call([g810_path, '-a', color1.hex_format()])
 
-
+# threaded function for animating active keys
 def animate(key: int, event: threading.Event):
-    update_key(key, color2.hex_format())
-    while keyboard.is_pressed(key):
-        sleep(1/freq)
-
     def gradient(color1, color2, steps):
         r1, g1, b1 = color1
         r2, g2, b2 = color2
@@ -60,37 +58,30 @@ def animate(key: int, event: threading.Event):
             return
         update_key(key, grad)
         sleep(1/freq)
+    # if the key is still active when the animation is done, remove it
     active.pop(key)
 
 
-def on_press(event):
-    # print(f"pressed [{event.name, event.scan_code}]")
+# yes there are hooks
+# but there's a bug where you cant actually hook both presses and releases
+# so this is the next best thing, sorry ryan this probably hurts to read
+while True:
+    event = keyboard.read_event()
     key = event.scan_code
+    print(f"{key} {event.event_type} {event.name}")
     if key in keymap:
-        # kill any active animations for this key, if any
-        if key in active:
-            active[key].set()
-        # start a new animation
-        active[key] = threading.Event()
-        threading.Thread(target=animate, args=(key, active[key])).start()
+        # animate on release
+        if event.event_type == 'up':
+            active[key] = threading.Event()
+            threading.Thread(target=animate, args=(key, active[key])).start()
+        # set color on press, kill any active animations for this key
+        elif event.event_type == 'down':
+            if key in active:
+                active[key].set()
+            update_key(key, color2.hex_format())
+        else:
+            print('Unknown event type: ' + str(event.event_type), file=stderr)
     elif key in ignore:
         pass
     else:
-        print('Unknown key code: ' + str(event.scan_code), file=stderr)
-
-# def on_release(event):
-#     print(f"released [{event.name, event.scan_code}]")
-#     if event.scan_code in keymap:
-#         # active[event.scan_code] = gradient(color1, color2, freq * fade)
-#         # subprocess.call([g810_path, '-k', keymap[event.scan_code], color1.hex_format()])
-#         update_key(event.scan_code, color1.hex_format())
-#     elif event.scan_code in ignore:
-#         pass
-#     else:
-#         # print to stderr
-#         print('Unknown key code: ' + str(event.scan_code), file=stderr)
-#     # print(key)
-
-
-keyboard.on_press(on_press)
-keyboard.wait()
+        print('Unknown key code: ' + str(key), file=stderr)
