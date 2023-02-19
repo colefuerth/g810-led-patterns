@@ -3,7 +3,7 @@
 Description=g810-led animation using python
 
 [Service]
-WorkingDirectory=/home/$USER/g810-led-patterns
+WorkingDirectory=/path/to/g810-led-patterns
 ExecStart=/usr/bin/python3 ./main.py
 
 [Install]
