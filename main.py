@@ -13,25 +13,21 @@ import threading
 
 color1 = colors['blueviolet']
 color2 = colors['darkorange']
-fade = 6         # fade time in seconds
+fade = 8         # fade time in seconds
 freq = 10        # animation frequency in Hz
 g810_path = '/usr/bin/g810-led'
 
 
-active = {}             # keys that are currently being animated
-ignore = {272, 273, 274}  # ignore mouse keys
-# map of `keyboard` keycodes to `g810-led` key names
+active = {}
+ignore = {272, 273, 274}
 keymap = {
     int(k): v for k, v in (line.strip().split(',')
                            for line in open('g513.csv')
                            if line.strip() != '')}
 
 
-# buffer of current key colors, to prevent unnecessary calls to g810-led
-keycache = {k: color1.hex_format() for k in keymap}
-
-
-def update_key(key: int, color: str):
+def update_key(key: int, color: str, keycache={k: color1.hex_format() for k in keymap}):
+    # buffer of current key colors, to prevent unnecessary calls to g810-led
     if keycache[key] != color:
         keycache[key] = color
         subprocess.call([g810_path, '-k', keymap[key], color])
@@ -40,10 +36,10 @@ def update_key(key: int, color: str):
 # set all keys to color1
 subprocess.call([g810_path, '-a', color1.hex_format()])
 
-# threaded function for animating active keys
-
 
 def animate(key: int, event: threading.Event, effect='gradient'):
+    # threaded function for animating active keys
+    # event is used to stop animations in progress if the key is pressed again
     if effect == 'gradient':
         def gradient(color1, color2, steps):
             r1, g1, b1 = color1
@@ -54,16 +50,12 @@ def animate(key: int, event: threading.Event, effect='gradient'):
                     int(g1 + (g2 - g1) * i / steps),
                     int(b1 + (b2 - b1) * i / steps)).hex_format()
         for grad in gradient(color2, color1, freq * fade):
-            # if event is set, then the key has been pressed again, so stop animating
             if event.is_set():
                 return
             update_key(key, grad)
             sleep(1/freq)
     else:
         raise ValueError('Unknown effect: ' + effect)
-    # if the key is still active when the animation is done, remove it
-    if key in active:
-        active.pop(key)
 
 
 def on_event(event):
@@ -71,12 +63,16 @@ def on_event(event):
     if key in keymap:
         # animate on release
         if event.event_type == 'up':
-            active[key] = threading.Event()
-            threading.Thread(target=animate, args=(key, active[key])).start()
+            e = threading.Event()
+            threading.Thread(target=animate, args=(key, e)).start()
+            if key in active:
+                active[key].set()
+            active[key] = e
         # set color on press, kill any active animations for this key
         elif event.event_type == 'down':
             if key in active:
                 active[key].set()
+                active.pop(key)
             update_key(key, color2.hex_format())
         else:
             print('Unknown event type: ' + str(event.event_type), file=stderr)
@@ -86,9 +82,8 @@ def on_event(event):
         print('Unknown key code: ' + str(key), file=stderr)
 
 
-# yes there are hooks
-# but there's a bug where you cant actually hook both presses and releases
-# also I threaded it because sometimes I would type faster than catching events and it would get stuck
-while True:
-    event = keyboard.read_event()
-    threading.Thread(target=on_event, args=(event,)).start()
+if __name__ == '__main__':
+    # asynchronously handle keyboard events because it trips up when I type too fast otherwise
+    while True:
+        event = keyboard.read_event()
+        threading.Thread(target=on_event, args=(event,)).start()
