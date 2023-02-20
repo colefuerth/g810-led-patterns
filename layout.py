@@ -51,18 +51,25 @@ def distance_map(distance=1) -> dict:
             continue
         # for each distance pass
         adjmap = {coord: 0}
-        prevpass = {coord}
+        queue = {coord}
         for dist in range(1, distance+1):
+            if not queue:
+                break
             nextpass = set()
-            for k in prevpass:
+            for k in queue:
                 nextpass.update(adjacent(k))
             nextpass = nextpass.difference(adjmap).intersection(coords)
             adjmap.update(
                 {k: dist for k in nextpass})
-            prevpass = nextpass
+            queue = nextpass
         keynames[coords[coord]] = {coords[k]: d for k, d in adjmap.items()}
     return keynames
 
 
 if __name__ == '__main__':
-    print(distance_map()['ctrlleft'])
+    from time import time
+    dist = 10
+    start = time()
+    distance_map(dist)
+    print(
+        f"Generation takes {round((time() - start) * 1000, 3)}ms for distance={dist}")
