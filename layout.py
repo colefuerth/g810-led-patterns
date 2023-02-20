@@ -62,7 +62,7 @@ def distance_map(distance=1) -> dict:
             adjmap.update(
                 {k: dist for k in nextpass})
             queue = nextpass
-        keynames[coords[coord]] = {coords[k]: d for k, d in adjmap.items()}
+        keynames[coords[coord]] = {coords[k]: d for k, d in adjmap.items() if coords[k] != ''}
     return keynames
 
 
